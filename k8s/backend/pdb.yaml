@@ -1,0 +1,14 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: orchestrator-pdb
+  namespace: backend
+  labels:
+    app: orchestrator
+    app.kubernetes.io/name: orchestrator
+    app.kubernetes.io/part-of: claude-agent-platform
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: orchestrator

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: orchestrator-config
+  namespace: backend
+  labels:
+    app: orchestrator
+    app.kubernetes.io/name: orchestrator
+    app.kubernetes.io/part-of: claude-agent-platform
+data:
+  WORKSPACE_PATH: "/workspace"
+  CLAUDE_MCP_IMAGE: "claude-mcp:latest"
+  PORT: "8080"
+  FLASK_DEBUG: "false"

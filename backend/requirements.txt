@@ -1,0 +1,4 @@
+flask==3.0.0
+gunicorn==21.2.0
+claude-agent-sdk>=0.1.0
+docker>=7.0.0

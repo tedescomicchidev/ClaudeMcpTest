@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orchestrator
+  namespace: backend
+  labels:
+    app: orchestrator
+    app.kubernetes.io/name: orchestrator
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: claude-agent-platform
+spec:
+  replicas: 2  # Load balanced with 2 instances always running
+  selector:
+    matchLabels:
+      app: orchestrator
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: orchestrator
+    spec:
+      containers:
+        - name: orchestrator
+          image: claude-agent-orchestrator:latest
+          imagePullPolicy: Never  # Use local Minikube image
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: anthropic-secrets
+                  key: ANTHROPIC_API_KEY
+            - name: WORKSPACE_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: orchestrator-config
+                  key: WORKSPACE_PATH
+            - name: CLAUDE_MCP_IMAGE
+              valueFrom:
+                configMapKeyRef:
+                  name: orchestrator-config
+                  key: CLAUDE_MCP_IMAGE
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: orchestrator-config
+                  key: PORT
+            - name: FLASK_DEBUG
+              valueFrom:
+                configMapKeyRef:
+                  name: orchestrator-config
+                  key: FLASK_DEBUG
+          volumeMounts:
+            - name: docker-socket
+              mountPath: /var/run/docker.sock
+            - name: workspace
+              mountPath: /workspace
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 999  # docker group
+      volumes:
+        - name: docker-socket
+          hostPath:
+            path: /var/run/docker.sock
+            type: Socket
+        - name: workspace
+          hostPath:
+            path: /data/workspace
+            type: DirectoryOrCreate
+      restartPolicy: Always
