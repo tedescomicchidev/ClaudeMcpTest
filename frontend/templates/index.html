@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Agent Orchestrator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #b0b0b0;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #fff;
+            font-size: 1rem;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+
+        textarea::placeholder {
+            color: #666;
+        }
+
+        .agent-selector {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .agent-count {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .agent-btn {
+            width: 45px;
+            height: 45px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.3);
+            color: #fff;
+            font-size: 1.5rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .agent-btn:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .agent-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .count-display {
+            font-size: 2rem;
+            font-weight: bold;
+            min-width: 60px;
+            text-align: center;
+            color: #00d4ff;
+        }
+
+        .agent-info {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .go-btn {
+            width: 100%;
+            padding: 18px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed);
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .go-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+        }
+
+        .go-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results-card {
+            display: none;
+        }
+
+        .results-card.active {
+            display: block;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .results-header h2 {
+            font-size: 1.3rem;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-pending {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+
+        .status-running {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+        }
+
+        .status-success {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+        }
+
+        .status-error {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+        }
+
+        .results-content {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .agent-result {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border-left: 3px solid #00d4ff;
+        }
+
+        .agent-result h3 {
+            font-size: 0.95rem;
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+
+        .agent-result .message {
+            color: #b0b0b0;
+        }
+
+        .agent-result.success {
+            border-left-color: #4caf50;
+        }
+
+        .agent-result.success h3 {
+            color: #4caf50;
+        }
+
+        .agent-result.error {
+            border-left-color: #f44336;
+        }
+
+        .agent-result.error h3 {
+            color: #f44336;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .clear-btn {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #888;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        .clear-btn:hover {
+            border-color: #f44336;
+            color: #f44336;
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Claude Agent Orchestrator</h1>
+            <p class="subtitle">Deploy multiple AI agents to work on your prompts</p>
+        </header>
+
+        <div class="card">
+            <form id="promptForm">
+                <div class="form-group">
+                    <label for="prompt">Enter your prompt</label>
+                    <textarea
+                        id="prompt"
+                        name="prompt"
+                        placeholder="Describe the task you want the agents to work on..."
+                        required
+                    ></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Number of Agents</label>
+                    <div class="agent-selector">
+                        <div class="agent-count">
+                            <button type="button" class="agent-btn" id="decreaseBtn">-</button>
+                            <span class="count-display" id="agentCount">1</span>
+                            <button type="button" class="agent-btn" id="increaseBtn">+</button>
+                        </div>
+                        <span class="agent-info">Select 1-10 agents to process your prompt</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="go-btn" id="goBtn">
+                    Go - Start Agents
+                </button>
+            </form>
+        </div>
+
+        <div class="card results-card" id="resultsCard">
+            <div class="results-header">
+                <h2>Results</h2>
+                <div>
+                    <span class="status-badge status-pending" id="statusBadge">Pending</span>
+                    <button class="clear-btn" id="clearBtn" style="margin-left: 10px;">Clear</button>
+                </div>
+            </div>
+            <div class="results-content" id="resultsContent">
+                <!-- Results will be displayed here -->
+            </div>
+        </div>
+
+        <footer>
+            Running on Minikube | Claude Agent SDK
+        </footer>
+    </div>
+
+    <script>
+        const promptForm = document.getElementById('promptForm');
+        const promptInput = document.getElementById('prompt');
+        const agentCountDisplay = document.getElementById('agentCount');
+        const decreaseBtn = document.getElementById('decreaseBtn');
+        const increaseBtn = document.getElementById('increaseBtn');
+        const goBtn = document.getElementById('goBtn');
+        const resultsCard = document.getElementById('resultsCard');
+        const resultsContent = document.getElementById('resultsContent');
+        const statusBadge = document.getElementById('statusBadge');
+        const clearBtn = document.getElementById('clearBtn');
+
+        let agentCount = 1;
+        const MIN_AGENTS = 1;
+        const MAX_AGENTS = 10;
+
+        function updateAgentCount(newCount) {
+            agentCount = Math.max(MIN_AGENTS, Math.min(MAX_AGENTS, newCount));
+            agentCountDisplay.textContent = agentCount;
+            decreaseBtn.disabled = agentCount <= MIN_AGENTS;
+            increaseBtn.disabled = agentCount >= MAX_AGENTS;
+        }
+
+        decreaseBtn.addEventListener('click', () => updateAgentCount(agentCount - 1));
+        increaseBtn.addEventListener('click', () => updateAgentCount(agentCount + 1));
+
+        function setStatus(status) {
+            statusBadge.className = 'status-badge';
+            switch (status) {
+                case 'pending':
+                    statusBadge.classList.add('status-pending');
+                    statusBadge.textContent = 'Pending';
+                    break;
+                case 'running':
+                    statusBadge.classList.add('status-running');
+                    statusBadge.innerHTML = '<span class="loading-spinner"></span>Running';
+                    break;
+                case 'success':
+                    statusBadge.classList.add('status-success');
+                    statusBadge.textContent = 'Completed';
+                    break;
+                case 'error':
+                    statusBadge.classList.add('status-error');
+                    statusBadge.textContent = 'Error';
+                    break;
+            }
+        }
+
+        function appendResult(agentId, message, type = 'info') {
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `agent-result ${type}`;
+            resultDiv.innerHTML = `
+                <h3>Agent ${agentId}</h3>
+                <div class="message">${escapeHtml(message)}</div>
+            `;
+            resultsContent.appendChild(resultDiv);
+            resultsContent.scrollTop = resultsContent.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        clearBtn.addEventListener('click', () => {
+            resultsCard.classList.remove('active');
+            resultsContent.innerHTML = '';
+            setStatus('pending');
+        });
+
+        promptForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const prompt = promptInput.value.trim();
+            if (!prompt) {
+                alert('Please enter a prompt');
+                return;
+            }
+
+            // Show results card and set running status
+            resultsCard.classList.add('active');
+            resultsContent.innerHTML = '';
+            setStatus('running');
+            goBtn.disabled = true;
+            goBtn.innerHTML = '<span class="loading-spinner"></span>Processing...';
+
+            try {
+                const response = await fetch('/api/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        agent_count: agentCount
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    setStatus('success');
+
+                    if (data.results && Array.isArray(data.results)) {
+                        data.results.forEach((result, index) => {
+                            const type = result.status === 'success' ? 'success' : 'error';
+                            appendResult(index + 1, result.message || result.result || JSON.stringify(result), type);
+                        });
+                    } else if (data.message) {
+                        appendResult(1, data.message, 'success');
+                    } else {
+                        appendResult(1, JSON.stringify(data, null, 2), 'success');
+                    }
+                } else {
+                    setStatus('error');
+                    appendResult(1, data.error || 'Unknown error occurred', 'error');
+                }
+            } catch (error) {
+                setStatus('error');
+                appendResult(1, `Request failed: ${error.message}`, 'error');
+            } finally {
+                goBtn.disabled = false;
+                goBtn.innerHTML = 'Go - Start Agents';
+            }
+        });
+
+        // Initialize
+        updateAgentCount(1);
+    </script>
+</body>
+</html>
